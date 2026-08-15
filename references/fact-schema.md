@@ -17,7 +17,7 @@ Enforced mechanically by `scripts/validate_facts.py`.
 
 | field | required | values / notes |
 |---|---|---|
-| `id` | yes | `F-0001`, `F-0002`, … unique, zero-padded, assigned in extraction order |
+| `id` | yes | `F-0001`, `F-0002`, … unique, zero-padded, assigned in extraction order; after a fan-out merge, ids are re-assigned sequentially (see SKILL.md Phase 3) |
 | `type` | yes | `entity` / `relationship` / `user_flow` / `rule` / `constraint` / `edge_case` / `discrepancy` |
 | `domain` | yes | business domain from Phase 0 recon (e.g. `onboarding`, `billing`) |
 | `statement` | yes | one sentence, user/business language, NOT code identifiers |
@@ -25,7 +25,7 @@ Enforced mechanically by `scripts/validate_facts.py`.
 | `actors` | no | user roles involved (e.g. `新员工`, `HR`) |
 | `sources` | yes | non-empty list, see below |
 | `enforcement` | yes | `frontend` / `backend` / `database` / `multiple` — where the fact is enforced in code |
-| `confidence` | yes | `high` = explicit in code; `medium` = inferred from multiple clues; `low` = speculation (⚠️ in the handbook) |
+| `confidence` | yes | `high` = explicit in code; `medium` = inferred from multiple clues; `low` = inferred from weak/ambiguous evidence — sources are still mandatory (⚠️ in the handbook) |
 | `relation` | required iff `type=relationship` | `{ "from": "...", "to": "...", "cardinality": "1-1|1-N|N-1|N-N", "label": "..." }` |
 
 ## Source objects
