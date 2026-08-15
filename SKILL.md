@@ -1,6 +1,6 @@
 ---
 name: business-facts-extractor
-description: Extract auditable business facts from a full-stack codebase (frontend + backend + DB schema). Produces BUSINESS_FACTS.md (human-readable handbook with Mermaid diagrams) and facts.json (machine-readable, every fact carries file:line sources). Covers user task flows, entity relationships, business rules (validation/state machines/permissions), and edge cases. Use when asked to 识别业务逻辑 / 输出业务事实 / document what a system does from its code / business spec from code.
+description: Extract auditable business facts from a codebase (frontend, backend, and/or DB schema; frontend-only supported). Produces BUSINESS_FACTS.md (human-readable handbook with Mermaid diagrams) and facts.json (machine-readable, every fact carries file:line sources). Covers user task flows, entity relationships, business rules (validation/state machines/permissions), and edge cases. Use when asked to 识别业务逻辑 / 输出业务事实 / document what a system does from its code / business spec from code.
 ---
 
 # Business Facts Extractor
@@ -12,6 +12,7 @@ Turn code into an auditable statement of business facts. Every claim carries a
 
 - **Input:** path to a project root (default: current working directory)
 - **Output:** `<project>/BUSINESS_FACTS.md` and `<project>/facts.json`
+- `<skill_dir>` below = the directory containing this SKILL.md
 
 ## Pipeline
 
@@ -27,7 +28,7 @@ and `references/authoring.md` at the phase where they're needed.
    everything yourself, sequentially). Otherwise **fan-out path** (subagents in
    Phase 2).
 
-### Phase 1 — Data model (bottom-up)
+### Phase 1 — Data model (bottom-up; read references/fact-schema.md first)
 
 Read schemas/migrations/ORM models. Emit `entity` and `relationship` facts
 (with `relation` objects). No DB found → skip, and note it in the appendix
@@ -36,15 +37,16 @@ still count — extract them as entities with `kind: frontend` sources.
 
 ### Phase 2 — Per-domain deep-read
 
-Before starting, read `references/fact-schema.md`.
+Every subagent prompt must embed the full fact schema from
+`references/fact-schema.md` (already read in Phase 1).
 
 - **Degraded path:** for each domain, read its routes → handlers → pages/forms.
-  Accumulate facts into a single `facts.json` draft as you go. Record sources
+  Accumulate facts into `<project>/facts.json` as you go. Record sources
   at the moment you read the code — never backfill line numbers from memory.
 - **Fan-out path:** dispatch one subagent per domain. The subagent prompt must
-  include: the domain's route/page/model file list, the full fact schema from
-  `references/fact-schema.md`, and the instruction to return ONLY a JSON array
-  of facts. Run `scripts/validate_facts.py` on each returned array (wrapped in
+  include the domain's route/page/model file list (plus the embedded schema,
+  per above) and the instruction to return ONLY a JSON array of facts.
+  Run `scripts/validate_facts.py` on each returned array (wrapped in
   the envelope); on failure, redispatch with the error output — max 2 retries,
   then record the domain as a blind spot in the appendix.
 
@@ -56,6 +58,8 @@ sides' sources. Never reconcile silently.
 ### Phase 3 — Reconcile & verify
 
 1. Merge all facts; dedupe identical statements (keep richest sources).
+   Re-assign ids sequentially (`F-0001`, `F-0002`, …) after merging —
+   subagent-scoped ids collide.
 2. Coverage check: every route-table entry and page from Phase 0 must appear in
    at least one fact's sources. Unreferenced ones go to the appendix 盲区清单.
 3. Run:
@@ -66,8 +70,10 @@ sides' sources. Never reconcile silently.
 
 ### Phase 4 — Author (read `references/authoring.md`)
 
-1. Write `BUSINESS_FACTS.md` sections 1–3 prose (overview, actor×task matrix,
-   user-flow narratives with Mermaid flowcharts, entity field tables).
+1. Write the prose parts of `BUSINESS_FACTS.md`: section 1 (overview),
+   section 2 (actor×task matrix + user-flow narratives with Mermaid
+   flowcharts), section 3 entity field tables (the ER diagram embed is
+   mechanical, step 2).
 2. Generate mechanical sections:
    ```bash
    python3 <skill_dir>/scripts/render_md.py <project>/facts.json --section er
@@ -82,6 +88,8 @@ sides' sources. Never reconcile silently.
 ## Hard rules
 
 - **No source, no fact.** A claim without `file:lines` is deleted, not kept.
+  Low-confidence facts still require sources — `low` marks uncertain
+  interpretation, never missing evidence.
 - Line numbers are recorded while reading, never reconstructed afterwards.
 - Discrepancies are recorded, never resolved by the agent.
 - md and json stay in sync: mechanical md sections come from `render_md.py`.
