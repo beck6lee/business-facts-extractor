@@ -75,7 +75,45 @@ class ValidateFactsTest(unittest.TestCase):
     def test_lines_beyond_file_length_fails(self):
         r = self.run_validator(make_doc(sources=[{"file": "api/employee.py", "lines": "1-99", "kind": "backend"}]))
         self.assertEqual(r.returncode, 1)
-        self.assertIn("only 3 lines", r.stdout)
+        self.assertIn("1-99", r.stdout)
+
+    def test_reversed_range_fails(self):
+        r = self.run_validator(make_doc(sources=[{"file": "api/employee.py", "lines": "3-1", "kind": "backend"}]))
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("start > end", r.stdout)
+
+    def test_unhashable_id_fails(self):
+        r = self.run_validator(make_doc(id=["F-1"]))
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("id must be a string", r.stdout)
+
+    def test_non_string_source_file_fails(self):
+        r = self.run_validator(make_doc(sources=[{"file": ["x"], "lines": "1", "kind": "backend"}]))
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("file must be a non-empty string", r.stdout)
+
+    def test_path_escape_fails(self):
+        r = self.run_validator(make_doc(sources=[{"file": "../../etc/hosts", "lines": "1", "kind": "backend"}]))
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("escapes", r.stdout)
+
+    def test_lines_zero_fails(self):
+        r = self.run_validator(make_doc(sources=[{"file": "api/employee.py", "lines": "0", "kind": "backend"}]))
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("lines", r.stdout)
+
+    def test_missing_sources_key_fails(self):
+        doc = make_doc()
+        del doc["facts"][0]["sources"]
+        r = self.run_validator(doc)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("sources", r.stdout)
+
+    def test_non_dict_fact_fails(self):
+        doc = make_doc()
+        doc["facts"] = ["nope"]
+        r = self.run_validator(doc)
+        self.assertEqual(r.returncode, 1)
 
     def test_missing_file_fails(self):
         r = self.run_validator(make_doc(sources=[{"file": "api/nope.py", "lines": "1-2", "kind": "backend"}]))
