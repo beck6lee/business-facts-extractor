@@ -1,0 +1,2620 @@
+{
+  "version": "1",
+  "project": {
+    "name": "microblog",
+    "stack": [
+      "Flask",
+      "Jinja templates + WTForms",
+      "SQLAlchemy + Alembic",
+      "Redis/RQ (optional)",
+      "Elasticsearch (optional)"
+    ],
+    "generated_at": "2025-01-01T00:00:00Z"
+  },
+  "facts": [
+    {
+      "id": "F-0001",
+      "type": "entity",
+      "domain": "social",
+      "statement": "User 代表一名注册用户，拥有用户名、邮箱、密码散列、个人简介、最后在线时间，以及 API 访问令牌",
+      "entities": [
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "98-128",
+          "kind": "backend"
+        },
+        {
+          "file": "migrations/versions/e517276bb1c2_users_table.py",
+          "lines": "20-31",
+          "kind": "database"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0002",
+      "type": "entity",
+      "domain": "posts",
+      "statement": "Post 代表一条用户发布的博客动态，正文最长 140 字符，记录发布时间、作者和检测到的语言",
+      "entities": [
+        "Post"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "287-301",
+          "kind": "backend"
+        },
+        {
+          "file": "migrations/versions/780739b227a7_posts_table.py",
+          "lines": "20-31",
+          "kind": "database"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0003",
+      "type": "entity",
+      "domain": "messaging",
+      "statement": "Message 代表一条用户之间的私信，有发送者、接收者、正文（最长 140 字符）和发送时间",
+      "entities": [
+        "Message"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "303-322",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0004",
+      "type": "entity",
+      "domain": "messaging",
+      "statement": "Notification 代表给某个用户的一条通知，按名字区分类型（同名通知会被覆盖），负载以 JSON 文本存储",
+      "entities": [
+        "Notification"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "324-336",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0005",
+      "type": "entity",
+      "domain": "posts",
+      "statement": "Task 代表一个由用户触发的后台异步任务（如导出博文），记录任务名、描述、所属用户和是否完成",
+      "entities": [
+        "Task"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "338-356",
+          "kind": "backend"
+        },
+        {
+          "file": "migrations/versions/c81bac34faab_tasks.py",
+          "lines": "20-31",
+          "kind": "database"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0006",
+      "type": "relationship",
+      "domain": "posts",
+      "statement": "一个用户可以发布多条博文，每条博文只属于一个作者",
+      "entities": [
+        "User",
+        "Post"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "113-114",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "293-297",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high",
+      "relation": {
+        "from": "User",
+        "to": "Post",
+        "cardinality": "1-N",
+        "label": "authors"
+      }
+    },
+    {
+      "id": "F-0007",
+      "type": "relationship",
+      "domain": "social",
+      "statement": "用户之间是多对多的关注关系：一个用户可以关注多人，也可以被多人关注（followers 关联表）",
+      "entities": [
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "87-95",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "115-122",
+          "kind": "backend"
+        },
+        {
+          "file": "migrations/versions/ae346256b650_followers.py",
+          "lines": "20-27",
+          "kind": "database"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high",
+      "relation": {
+        "from": "User",
+        "to": "User",
+        "cardinality": "N-N",
+        "label": "follows"
+      }
+    },
+    {
+      "id": "F-0008",
+      "type": "relationship",
+      "domain": "messaging",
+      "statement": "一个用户可以发送多条私信，每条私信只有一个发送者",
+      "entities": [
+        "User",
+        "Message"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "123-124",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "305-306",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high",
+      "relation": {
+        "from": "User",
+        "to": "Message",
+        "cardinality": "1-N",
+        "label": "sends"
+      }
+    },
+    {
+      "id": "F-0009",
+      "type": "relationship",
+      "domain": "messaging",
+      "statement": "一个用户可以接收多条私信，每条私信只有一个接收者",
+      "entities": [
+        "User",
+        "Message"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "125-126",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "307-309",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high",
+      "relation": {
+        "from": "User",
+        "to": "Message",
+        "cardinality": "1-N",
+        "label": "receives"
+      }
+    },
+    {
+      "id": "F-0010",
+      "type": "relationship",
+      "domain": "messaging",
+      "statement": "一个用户可以拥有多条通知，每条通知只属于一个用户",
+      "entities": [
+        "User",
+        "Notification"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "127-128",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "327-329",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high",
+      "relation": {
+        "from": "User",
+        "to": "Notification",
+        "cardinality": "1-N",
+        "label": "notified_by"
+      }
+    },
+    {
+      "id": "F-0011",
+      "type": "relationship",
+      "domain": "posts",
+      "statement": "一个用户可以发起多个后台任务，每个任务只属于一个用户",
+      "entities": [
+        "User",
+        "Task"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "129-129",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "342-343",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "database",
+      "confidence": "high",
+      "relation": {
+        "from": "User",
+        "to": "Task",
+        "cardinality": "1-N",
+        "label": "launches"
+      }
+    },
+    {
+      "id": "F-0012",
+      "type": "user_flow",
+      "domain": "auth",
+      "statement": "用户在登录页输入用户名和密码登录，登录成功后可选择「记住我」并跳转到原来想访问的页面或首页",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "14-31",
+          "kind": "backend"
+        },
+        {
+          "file": "app/auth/forms.py",
+          "lines": "10-14",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/auth/login.html",
+          "lines": "1-11",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0013",
+      "type": "user_flow",
+      "domain": "auth",
+      "statement": "访客填写用户名、邮箱和两遍相同的密码完成注册，注册成功后被引导回登录页登录",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "39-52",
+          "kind": "backend"
+        },
+        {
+          "file": "app/auth/forms.py",
+          "lines": "17-24",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/auth/register.html",
+          "lines": "1-7",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0014",
+      "type": "user_flow",
+      "domain": "auth",
+      "statement": "忘记密码的用户提交注册邮箱后收到含重置链接的邮件，点击链接在有效期内设置新密码，成功后回到登录页",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "55-84",
+          "kind": "backend"
+        },
+        {
+          "file": "app/auth/email.py",
+          "lines": "6-14",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/email/reset_password.html",
+          "lines": "6-13",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "180-190",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/auth/reset_password_request.html",
+          "lines": "1-7",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0015",
+      "type": "user_flow",
+      "domain": "auth",
+      "statement": "已登录用户访问退出链接即被登出并跳转回首页",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "33-36",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0016",
+      "type": "rule",
+      "domain": "auth",
+      "statement": "已登录用户再访问登录、注册、找回密码、重置密码页面时会被直接重定向到首页，不能重复操作",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "16-17",
+          "kind": "backend"
+        },
+        {
+          "file": "app/auth/routes.py",
+          "lines": "41-42",
+          "kind": "backend"
+        },
+        {
+          "file": "app/auth/routes.py",
+          "lines": "57-58",
+          "kind": "backend"
+        },
+        {
+          "file": "app/auth/routes.py",
+          "lines": "74-75",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0017",
+      "type": "rule",
+      "domain": "auth",
+      "statement": "登录成功后只允许跳转到本站内的地址，带有外部域名的跳转目标会被忽略并改跳首页（防止开放重定向）",
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "27-30",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0018",
+      "type": "constraint",
+      "domain": "auth",
+      "statement": "注册时用户名、邮箱、密码均为必填，邮箱必须符合邮箱格式，且两次输入的密码必须一致",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/forms.py",
+          "lines": "17-24",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0019",
+      "type": "constraint",
+      "domain": "auth",
+      "statement": "注册时用户名和邮箱都必须在全站唯一，已被占用的用户名或邮箱会被拒绝并提示更换",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/forms.py",
+          "lines": "26-35",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0020",
+      "type": "constraint",
+      "domain": "auth",
+      "statement": "登录时用户名和密码均为必填项",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/forms.py",
+          "lines": "10-13",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0021",
+      "type": "edge_case",
+      "domain": "auth",
+      "statement": "登录失败时无论用户名不存在还是密码错误，都只显示统一的「用户名或密码无效」提示并回到登录页，不区分具体原因",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "20-25",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0022",
+      "type": "edge_case",
+      "domain": "auth",
+      "statement": "提交找回密码邮箱后，无论该邮箱是否注册了账号，页面都显示相同的「请查收邮件」提示，避免被用来探测已注册邮箱",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "59-66",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0023",
+      "type": "edge_case",
+      "domain": "auth",
+      "statement": "重置密码链接无效或已过期时，用户被静默重定向到首页，没有任何错误提示",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "76-78",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "185-190",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0024",
+      "type": "rule",
+      "domain": "auth",
+      "statement": "重置密码链接的有效期为 10 分钟，超时后链接失效",
+      "entities": [
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "180-183",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0025",
+      "type": "rule",
+      "domain": "auth",
+      "statement": "重置密码邮件以管理员邮箱为发件人、在后台线程异步发送，不阻塞用户请求",
+      "sources": [
+        {
+          "file": "app/auth/email.py",
+          "lines": "6-14",
+          "kind": "backend"
+        },
+        {
+          "file": "app/email.py",
+          "lines": "20-24",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0026",
+      "type": "rule",
+      "domain": "auth",
+      "statement": "注册成功后无需验证邮箱即可直接登录，邮箱真实性不做任何确认",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/auth/routes.py",
+          "lines": "44-50",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "medium"
+    },
+    {
+      "id": "F-0027",
+      "type": "discrepancy",
+      "domain": "auth",
+      "statement": "重置密码页面的标题是「重置你的密码」，但表单提交按钮的文案却是「请求密码重置」，与实际动作（设置新密码）不一致",
+      "sources": [
+        {
+          "file": "app/templates/auth/reset_password.html",
+          "lines": "4",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/auth/forms.py",
+          "lines": "45-48",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0028",
+      "type": "edge_case",
+      "domain": "auth",
+      "statement": "遇到 404 或 500 错误时，系统根据请求方的接受类型返回网页或 JSON；发生 500 时会先回滚数据库会话，且错误页提示「管理员已收到通知」",
+      "sources": [
+        {
+          "file": "app/errors/handlers.py",
+          "lines": "7-24",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/errors/404.html",
+          "lines": "1-6",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/errors/500.html",
+          "lines": "1-7",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0029",
+      "type": "user_flow",
+      "domain": "posts",
+      "statement": "已登录用户在首页输入博文内容并提交，发布成功后看到「Your post is now live!」提示并回到首页",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "25-40",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/forms.py",
+          "lines": "31-34",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/index.html",
+          "lines": "6-8",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0030",
+      "type": "constraint",
+      "domain": "posts",
+      "statement": "博文内容必填，长度必须在 1 到 140 个字符之间",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/forms.py",
+          "lines": "31-34",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "290-290",
+          "kind": "database"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0031",
+      "type": "rule",
+      "domain": "posts",
+      "statement": "发布博文时系统自动检测正文语言并随博文保存；语言检测失败（如内容过短）时语言字段留空",
+      "entities": [
+        "Post"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "29-35",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0032",
+      "type": "rule",
+      "domain": "posts",
+      "statement": "首页信息流只展示当前用户关注的人（含自己）的博文，探索页则展示全站所有用户的博文并按时间倒序排列",
+      "entities": [
+        "Post",
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "41-51",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "54-68",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0033",
+      "type": "rule",
+      "domain": "posts",
+      "statement": "首页、探索页、消息页等列表均按每页 25 条分页，页码通过 URL 参数 page 传递",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "41-44",
+          "kind": "backend"
+        },
+        {
+          "file": "config.py",
+          "lines": "25-25",
+          "kind": "config"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0034",
+      "type": "edge_case",
+      "domain": "posts",
+      "statement": "分页页码超出范围时不会报错，而是显示空列表（error_out=False）",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "42-44",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "58-60",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0035",
+      "type": "user_flow",
+      "domain": "posts",
+      "statement": "已登录用户在顶部导航栏输入关键词搜索博文，结果页分页展示匹配的博文",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "165-178",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/forms.py",
+          "lines": "37-44",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/base.html",
+          "lines": "32-35",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/search.html",
+          "lines": "1-22",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0036",
+      "type": "constraint",
+      "domain": "posts",
+      "statement": "搜索关键词必填；搜索表单读取 URL 查询参数且不启用 CSRF 校验",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/forms.py",
+          "lines": "37-44",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0037",
+      "type": "edge_case",
+      "domain": "posts",
+      "statement": "提交空的搜索关键词时不执行搜索，直接重定向到探索页",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "167-168",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0038",
+      "type": "edge_case",
+      "domain": "posts",
+      "statement": "Elasticsearch 未配置时，搜索静默返回空结果（0 条），博文的索引写入与删除也被静默跳过",
+      "entities": [
+        "Post"
+      ],
+      "sources": [
+        {
+          "file": "app/search.py",
+          "lines": "4-5",
+          "kind": "backend"
+        },
+        {
+          "file": "app/search.py",
+          "lines": "14-15",
+          "kind": "backend"
+        },
+        {
+          "file": "app/search.py",
+          "lines": "19-20",
+          "kind": "backend"
+        },
+        {
+          "file": "config.py",
+          "lines": "23-23",
+          "kind": "config"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0039",
+      "type": "rule",
+      "domain": "posts",
+      "statement": "博文在数据库中新增、修改或删除后，系统在同一事务提交后自动把正文同步到 Elasticsearch 索引，搜索结果按索引相关度排序",
+      "entities": [
+        "Post"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "34-51",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "59-60",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "287-288",
+          "kind": "database"
+        },
+        {
+          "file": "app/search.py",
+          "lines": "17-26",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0040",
+      "type": "rule",
+      "domain": "posts",
+      "statement": "搜索结果分页时，仅当匹配总数超过「当前页码 × 每页条数」才显示下一页链接，页码大于 1 才显示上一页链接",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "172-175",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0041",
+      "type": "user_flow",
+      "domain": "posts",
+      "statement": "用户在博文旁点击「翻译」链接，前端异步调用翻译接口，译文直接替换显示在原博文下方",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/templates/_post.html",
+          "lines": "18-26",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/base.html",
+          "lines": "98-111",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "156-162",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0042",
+      "type": "rule",
+      "domain": "posts",
+      "statement": "仅当博文带语言标记且与当前用户界面语言不同时，才显示「翻译」链接",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/templates/_post.html",
+          "lines": "18-18",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0043",
+      "type": "edge_case",
+      "domain": "posts",
+      "statement": "翻译服务未配置密钥时，翻译请求返回「Error: the translation service is not configured.」的提示文本而不是报错",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/translate.py",
+          "lines": "6-8",
+          "kind": "backend"
+        },
+        {
+          "file": "config.py",
+          "lines": "22-22",
+          "kind": "config"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0044",
+      "type": "edge_case",
+      "domain": "posts",
+      "statement": "微软翻译 API 返回非 200 状态码时，用户看到的是「Error: the translation service failed.」提示文本，接口本身仍返回成功",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/translate.py",
+          "lines": "14-19",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0045",
+      "type": "edge_case",
+      "domain": "posts",
+      "statement": "翻译接口直接读取请求 JSON 中的 text、source_language、dest_language 字段且不做校验，字段缺失会导致服务器内部错误",
+      "entities": [
+        "Post"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "159-162",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "medium"
+    },
+    {
+      "id": "F-0046",
+      "type": "user_flow",
+      "domain": "posts",
+      "statement": "用户在个人主页请求导出自己的全部博文，系统启动后台任务把博文按时间正序整理为 JSON 附件，完成后通过电子邮件发送给用户",
+      "entities": [
+        "Post",
+        "Task",
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "219-227",
+          "kind": "backend"
+        },
+        {
+          "file": "app/tasks.py",
+          "lines": "27-47",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/email/export_posts.html",
+          "lines": "1-4",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0047",
+      "type": "edge_case",
+      "domain": "posts",
+      "statement": "用户已有导出任务进行中时再次点击导出，只提示「An export task is currently in progress」，不会重复启动任务",
+      "entities": [
+        "Task",
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "221-223",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0048",
+      "type": "edge_case",
+      "domain": "posts",
+      "statement": "导出任务执行中发生异常时，错误只记录到服务端日志，任务仍被标记为 100% 完成，用户收不到失败通知",
+      "entities": [
+        "Task",
+        "Post"
+      ],
+      "sources": [
+        {
+          "file": "app/tasks.py",
+          "lines": "49-53",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0049",
+      "type": "rule",
+      "domain": "posts",
+      "statement": "导出的博文归档仅包含正文和时间戳两个字段，按发布时间升序排列，并以 JSON 文件附件随邮件发出",
+      "entities": [
+        "Post"
+      ],
+      "sources": [
+        {
+          "file": "app/tasks.py",
+          "lines": "33-39",
+          "kind": "backend"
+        },
+        {
+          "file": "app/tasks.py",
+          "lines": "41-47",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0050",
+      "type": "rule",
+      "domain": "posts",
+      "statement": "首页、探索页、翻译、搜索、导出等所有博文相关操作都要求用户已登录，未登录访问会被重定向到登录页",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "访客",
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "27-27",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "55-55",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "157-157",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "166-166",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "220-220",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0051",
+      "type": "user_flow",
+      "domain": "social",
+      "statement": "已登录用户访问任意用户的个人主页，可查看其头像、用户名、个人简介、最近上线时间、粉丝数与关注数，并按时间倒序分页浏览该用户的全部帖子",
+      "entities": [
+        "User",
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "71-87",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/user.html",
+          "lines": "4-50",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0052",
+      "type": "user_flow",
+      "domain": "social",
+      "statement": "已登录用户进入编辑资料页修改自己的用户名和个人简介并提交，保存成功后提示\"您的更改已保存\"并返回编辑页；进入页面时表单自动预填当前值",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "97-112",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/edit_profile.html",
+          "lines": "1-7",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0053",
+      "type": "user_flow",
+      "domain": "social",
+      "statement": "用户将鼠标悬停在帖子作者用户名上时，弹出资料浮层显示该用户头像、简介、最近上线时间、粉丝/关注数及关注/取关按钮",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/templates/base.html",
+          "lines": "133-156",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "89-94",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/user_popup.html",
+          "lines": "1-24",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0054",
+      "type": "user_flow",
+      "domain": "social",
+      "statement": "已登录用户在他人主页或资料浮层点击\"关注\"按钮（POST 提交）建立关注关系，提示\"你正在关注某用户\"并跳回该用户主页；点击\"取消关注\"则解除关系",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "114-153",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/user.html",
+          "lines": "18-33",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/user_popup.html",
+          "lines": "10-23",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0055",
+      "type": "rule",
+      "domain": "social",
+      "statement": "用户不能关注自己，后端检测到自关注时提示\"你不能关注自己！\"并跳回自己的主页",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "123-125",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0056",
+      "type": "rule",
+      "domain": "social",
+      "statement": "用户不能对自己执行取消关注操作，后端检测到时提示\"你不能取消关注自己！\"并跳回自己的主页",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "143-145",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0057",
+      "type": "rule",
+      "domain": "social",
+      "statement": "重复关注同一用户不会产生重复的关注关系，只有尚未关注时才会添加；取消关注仅在已关注时生效",
+      "entities": [
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "142-149",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0058",
+      "type": "rule",
+      "domain": "social",
+      "statement": "查看他人主页时，关注/取关按钮的显示取决于当前是否已关注该用户；查看自己的主页时显示\"编辑个人资料\"链接而不显示关注按钮",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/templates/user.html",
+          "lines": "14-33",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0059",
+      "type": "rule",
+      "domain": "social",
+      "statement": "已登录用户的每次请求都会自动刷新其\"最近上线时间\"，该时间在个人主页和资料浮层中向他人展示",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "16-22",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/user.html",
+          "lines": "9-11",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/user_popup.html",
+          "lines": "6-8",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0060",
+      "type": "rule",
+      "domain": "social",
+      "statement": "用户头像由 Gravatar 根据邮箱地址的 MD5 哈希生成，系统不提供上传自定义头像的功能",
+      "entities": [
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "138-140",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0061",
+      "type": "constraint",
+      "domain": "social",
+      "statement": "编辑资料时用户名必填，且若修改为新用户名，该用户名不得已被其他用户占用，否则提示\"请使用其他用户名\"",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/forms.py",
+          "lines": "12-13",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/main/forms.py",
+          "lines": "17-27",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "100-101",
+          "kind": "database"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0062",
+      "type": "constraint",
+      "domain": "social",
+      "statement": "个人简介（关于我）最长 140 个字符，表单与数据库字段均限制为 140",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/forms.py",
+          "lines": "14-15",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "105",
+          "kind": "database"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0063",
+      "type": "constraint",
+      "domain": "social",
+      "statement": "查看用户主页、资料浮层、编辑资料、关注与取关操作均要求用户已登录，未登录访问会被重定向到登录页并提示\"请登录后访问此页面\"",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "匿名访客"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "71-72",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "89-90",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "97-98",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "114-115",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "135-136",
+          "kind": "backend"
+        },
+        {
+          "file": "app/__init__.py",
+          "lines": "22-24",
+          "kind": "config"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0064",
+      "type": "edge_case",
+      "domain": "social",
+      "statement": "关注或取关的目标用户名不存在时，后端提示\"未找到该用户\"并将用户重定向回首页，不产生任何关系变更",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "118-121",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "139-142",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0065",
+      "type": "edge_case",
+      "domain": "social",
+      "statement": "访问不存在用户的个人主页或资料浮层时，系统返回 404 页面",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "73",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "91",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0066",
+      "type": "edge_case",
+      "domain": "social",
+      "statement": "关注/取关接口只接受 POST 提交，直接以 GET 等方式访问会因表单校验失败而被静默重定向回首页，无任何提示",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "114-132",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "135-153",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/forms.py",
+          "lines": "30-31",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0067",
+      "type": "discrepancy",
+      "domain": "social",
+      "statement": "编辑资料表单对新用户名仅校验必填、无长度上限，而数据库用户名字段最长 64 字符，超长用户名可通过表单校验后在数据库层被截断或报错",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/forms.py",
+          "lines": "12-13",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "100-101",
+          "kind": "database"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0068",
+      "type": "edge_case",
+      "domain": "social",
+      "statement": "个人主页与发现页分页请求超出范围页码时不报错，而是返回空列表（分页不抛 404）",
+      "entities": [
+        "Post"
+      ],
+      "actors": [
+        "已登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "75-78",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "medium"
+    },
+    {
+      "id": "F-0069",
+      "type": "user_flow",
+      "domain": "messaging",
+      "statement": "登录用户访问其他用户主页的发私信入口，填写私信内容并提交，发送成功后页面提示“私信已发送”并跳转回收件人主页",
+      "entities": [
+        "Message",
+        "User"
+      ],
+      "actors": [
+        "登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "181-195",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/send_message.html",
+          "lines": "4-6",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/main/forms.py",
+          "lines": "50-53",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0070",
+      "type": "user_flow",
+      "domain": "messaging",
+      "statement": "登录用户打开私信列表页查看自己收到的全部私信，按发送时间倒序分页展示，且打开该页即自动把所有私信标记为已读",
+      "entities": [
+        "Message",
+        "User"
+      ],
+      "actors": [
+        "登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "198-215",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/messages.html",
+          "lines": "4-7",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0071",
+      "type": "constraint",
+      "domain": "messaging",
+      "statement": "私信内容必填，长度必须在 1 到 140 个字符之间，表单校验与数据库字段长度限制一致",
+      "entities": [
+        "Message"
+      ],
+      "actors": [
+        "登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/forms.py",
+          "lines": "50-53",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "309",
+          "kind": "database"
+        }
+      ],
+      "enforcement": "multiple",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0072",
+      "type": "rule",
+      "domain": "messaging",
+      "statement": "私信发送成功后，系统会重新计算收件人的未读私信数量并写入其通知，供收件人页面的未读提示更新",
+      "entities": [
+        "Message",
+        "Notification",
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "186-191",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "195-200",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0073",
+      "type": "rule",
+      "domain": "messaging",
+      "statement": "用户一旦打开私信列表页，系统就把当前时间记为其私信最后阅读时间，并把未读私信数通知清零，即无需逐条操作即全部视为已读",
+      "entities": [
+        "Message",
+        "Notification",
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "201-203",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0074",
+      "type": "rule",
+      "domain": "messaging",
+      "statement": "同一用户同一类型的通知只保留最新一条：写入新通知前会先删除该用户的同名旧通知",
+      "entities": [
+        "Notification",
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "202-207",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0075",
+      "type": "rule",
+      "domain": "messaging",
+      "statement": "未读私信数按“发送时间晚于用户最后阅读时间”的私信条数计算；从未读过私信的用户以 1900 年 1 月 1 日为基准时间",
+      "entities": [
+        "Message",
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "195-200",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0076",
+      "type": "edge_case",
+      "domain": "messaging",
+      "statement": "向不存在的用户名发私信时，系统返回 404 页面而不是创建私信",
+      "entities": [
+        "Message",
+        "User"
+      ],
+      "actors": [
+        "登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "184",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0077",
+      "type": "edge_case",
+      "domain": "messaging",
+      "statement": "未登录用户无法访问发私信、私信列表和通知查询入口，会被要求先登录",
+      "entities": [
+        "Message",
+        "Notification"
+      ],
+      "actors": [
+        "访客"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "182",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "199",
+          "kind": "backend"
+        },
+        {
+          "file": "app/main/routes.py",
+          "lines": "230",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0078",
+      "type": "rule",
+      "domain": "messaging",
+      "statement": "通知查询接口以 JSON 返回当前用户在指定时间戳之后产生的通知（按时间升序），供页面定时轮询增量更新；不带参数首次请求时返回全部历史通知",
+      "entities": [
+        "Notification",
+        "User"
+      ],
+      "actors": [
+        "登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "229-240",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0079",
+      "type": "edge_case",
+      "domain": "messaging",
+      "statement": "系统未校验收件人与发件人是否为同一人，用户可以给自己发送私信",
+      "entities": [
+        "Message",
+        "User"
+      ],
+      "actors": [
+        "登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "183-193",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "medium"
+    },
+    {
+      "id": "F-0080",
+      "type": "discrepancy",
+      "domain": "messaging",
+      "statement": "后端为私信列表计算并传入了上一页/下一页的翻页链接，但模板中“更新的私信/更早的私信”按钮的链接固定为空锚点（#），用户实际无法点击翻页",
+      "entities": [
+        "Message"
+      ],
+      "actors": [
+        "登录用户"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "210-215",
+          "kind": "backend"
+        },
+        {
+          "file": "app/templates/messages.html",
+          "lines": "10-19",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0081",
+      "type": "rule",
+      "domain": "messaging",
+      "statement": "私信列表复用博客动态的展示组件渲染每条私信，因此私信以发送者的头像、用户名和发送时间呈现，点击头像进入发送者主页",
+      "entities": [
+        "Message",
+        "User"
+      ],
+      "sources": [
+        {
+          "file": "app/templates/messages.html",
+          "lines": "5-6",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "medium"
+    },
+    {
+      "id": "F-0082",
+      "type": "constraint",
+      "domain": "messaging",
+      "statement": "私信列表的每页条数不单独配置，直接沿用全站动态列表的 POSTS_PER_PAGE 配置",
+      "entities": [
+        "Message"
+      ],
+      "sources": [
+        {
+          "file": "app/main/routes.py",
+          "lines": "207-209",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0083",
+      "type": "user_flow",
+      "domain": "api",
+      "statement": "API 客户端使用用户名和密码通过 HTTP Basic 认证换取访问令牌，之后凭令牌访问受保护的接口",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/tokens.py",
+          "lines": "6-11",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/auth.py",
+          "lines": "12-16",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0084",
+      "type": "user_flow",
+      "domain": "api",
+      "statement": "API 客户端可以凭当前令牌注销登录（吊销令牌），吊销后该令牌立即失效",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/tokens.py",
+          "lines": "14-18",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "270-272",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0085",
+      "type": "user_flow",
+      "domain": "api",
+      "statement": "API 客户端无需登录即可提交用户名、邮箱和密码注册新用户，成功后返回 201 并在 Location 头中给出新用户的资源地址",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "45-61",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0086",
+      "type": "user_flow",
+      "domain": "api",
+      "statement": "登录用户可以通过 API 修改自己的用户名、邮箱和个人简介等资料",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "注册用户"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "64-81",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "253-258",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0087",
+      "type": "rule",
+      "domain": "api",
+      "statement": "除用户注册外，所有 API 接口（查询用户、粉丝列表、关注列表、修改资料、吊销令牌）都必须携带有效访问令牌才能调用",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "11-11",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "16-17",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "26-26",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "36-36",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "65-65",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/tokens.py",
+          "lines": "15-15",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0088",
+      "type": "rule",
+      "domain": "api",
+      "statement": "任何持有有效令牌的登录用户都可以查看任意用户的资料、粉丝列表和关注列表，没有仅本人可见的限制",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "注册用户"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "10-13",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "25-32",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "35-42",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0089",
+      "type": "rule",
+      "domain": "api",
+      "statement": "用户列表、粉丝列表和关注列表接口均支持分页，默认每页 10 条，每页最多 100 条，超出部分会被截断",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "19-22",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "28-32",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "38-42",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0090",
+      "type": "rule",
+      "domain": "api",
+      "statement": "用户只能修改自己的资料，尝试修改他人资料会被拒绝并返回 403",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "注册用户"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "66-67",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0091",
+      "type": "rule",
+      "domain": "api",
+      "statement": "访问令牌有效期为 1 小时；如果现有令牌剩余有效期超过 60 秒，再次获取令牌时会直接复用现有令牌而不是生成新令牌",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "260-268",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/tokens.py",
+          "lines": "8-11",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0092",
+      "type": "rule",
+      "domain": "api",
+      "statement": "API 返回的用户资料包含用户名、个人简介、发帖数、粉丝数、关注数和头像链接，但不包含邮箱地址（所有 API 调用均未启用邮箱返回）",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/models.py",
+          "lines": "231-251",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "13-13",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "60-61",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "81-81",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0093",
+      "type": "constraint",
+      "domain": "api",
+      "statement": "通过 API 注册新用户时必须同时提供用户名、邮箱和密码三个字段，缺一不可",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "47-49",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0094",
+      "type": "constraint",
+      "domain": "api",
+      "statement": "用户名和邮箱在全站范围内唯一，注册或修改资料时若已被他人占用会被拒绝",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "注册用户"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "50-56",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "72-79",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0095",
+      "type": "rule",
+      "domain": "api",
+      "statement": "修改资料时仅当用户名或邮箱的新值与当前值不同才会检查唯一性，提交与当前相同的值不会报错",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "注册用户"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "72-79",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0096",
+      "type": "rule",
+      "domain": "api",
+      "statement": "所有 API 错误响应统一为 JSON 格式，包含 error 字段（HTTP 状态描述）和可选的 message 字段（具体错误说明）",
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/errors.py",
+          "lines": "6-14",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/errors.py",
+          "lines": "17-18",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0097",
+      "type": "edge_case",
+      "domain": "api",
+      "statement": "使用已被占用的用户名或邮箱注册时返回 400 错误并提示更换用户名或邮箱",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "50-56",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/errors.py",
+          "lines": "13-14",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0098",
+      "type": "edge_case",
+      "domain": "api",
+      "statement": "请求不存在的用户（查询、查粉丝、查关注或修改）时返回 404 错误",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/users.py",
+          "lines": "13-13",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "27-27",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "37-37",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/users.py",
+          "lines": "68-68",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0099",
+      "type": "edge_case",
+      "domain": "api",
+      "statement": "携带无效、缺失或已过期的访问令牌调用受保护接口时认证失败并返回 401 错误",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/auth.py",
+          "lines": "24-30",
+          "kind": "backend"
+        },
+        {
+          "file": "app/models.py",
+          "lines": "274-280",
+          "kind": "backend"
+        },
+        {
+          "file": "app/api/errors.py",
+          "lines": "6-10",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0100",
+      "type": "edge_case",
+      "domain": "api",
+      "statement": "换取令牌时提供的用户名不存在或密码错误会导致 Basic 认证失败并返回 401 错误",
+      "entities": [
+        "User"
+      ],
+      "actors": [
+        "API 客户端"
+      ],
+      "sources": [
+        {
+          "file": "app/api/auth.py",
+          "lines": "12-21",
+          "kind": "backend"
+        }
+      ],
+      "enforcement": "backend",
+      "confidence": "high"
+    },
+    {
+      "id": "F-0101",
+      "type": "rule",
+      "domain": "auth",
+      "statement": "全站表单通过统一的宏渲染，字段校验失败时会在对应输入框下方以红色内联提示具体错误信息",
+      "actors": [
+        "用户"
+      ],
+      "sources": [
+        {
+          "file": "app/templates/bootstrap_wtf.html",
+          "lines": "26-28",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/bootstrap_wtf.html",
+          "lines": "40-42",
+          "kind": "frontend"
+        },
+        {
+          "file": "app/templates/bootstrap_wtf.html",
+          "lines": "54-60",
+          "kind": "frontend"
+        }
+      ],
+      "enforcement": "frontend",
+      "confidence": "high"
+    }
+  ]
+}

@@ -70,7 +70,7 @@ python3 scripts/render_md.py /path/to/project/facts.json --section rules
 | 目标项目 | 路径 | 结果 |
 |---|---|---|
 | 单文件 HTML 入职登记表（1503 行纯前端） | 降级 | 48 条事实，6 个真实 discrepancy（如 `novalidate` 使全部 `required` 失效、草稿步骤恢复为死代码） |
-| [microblog](https://github.com/miguelgrinberg/microblog)（Flask 全栈） | 扇出（5 域 subagent 并行） | 101 条事实，路由/模板覆盖零盲区，3 个 discrepancy |
+| [microblog](https://github.com/miguelgrinberg/microblog)（Flask 全栈） | 扇出（5 域 subagent 并行） | 101 条事实，路由/模板覆盖零盲区，3 个 discrepancy（[完整产出见 examples/microblog](examples/microblog/)） |
 
 ## 仓库结构
 
