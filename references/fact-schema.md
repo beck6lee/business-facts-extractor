@@ -35,7 +35,8 @@ Enforced mechanically by `scripts/validate_facts.py`.
 ```
 
 - `file`: path relative to the analyzed project root (POSIX separators)
-- `lines`: `"N"` or `"N-M"`, must exist in the file
+- `lines`: `"N"` or `"N-M"`, must exist in the file — cite only line numbers
+  actually seen in read-tool output; never guess a file's tail line number
 - `kind`: `frontend` / `backend` / `database` / `config` / `other`
 
 ## Type guide

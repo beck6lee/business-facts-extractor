@@ -46,9 +46,16 @@ Every subagent prompt must embed the full fact schema from
 - **Fan-out path:** dispatch one subagent per domain. The subagent prompt must
   include the domain's route/page/model file list (plus the embedded schema,
   per above) and the instruction to return ONLY a JSON array of facts.
+  Also have the subagent write the array to a scratch file (e.g.
+  `/tmp/domain-<name>.json`) — more robust than parsing chat output.
   Run `scripts/validate_facts.py` on each returned array (wrapped in
-  the envelope); on failure, redispatch with the error output — max 2 retries,
-  then record the domain as a blind spot in the appendix.
+  the envelope). On failure:
+  - If the errors are only source line ranges that overrun the file's actual
+    length by a few lines (subagents often guess tail lines), the orchestrator
+    may re-read the implicated files itself and fix the ranges in place —
+    this still satisfies "recorded while reading".
+  - Otherwise redispatch with the error output — max 2 retries,
+    then record the domain as a blind spot in the appendix.
 
 Hunt for: API contracts, input validation, permission middleware/decorators,
 frontend form rules, field linkage logic, enum-driven state machines, error
