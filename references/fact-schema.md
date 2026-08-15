@@ -13,6 +13,9 @@ Enforced mechanically by `scripts/validate_facts.py`.
 }
 ```
 
+Only `project.name` and a non-empty `facts` array are enforced by the
+validator; `version`, `stack`, and `generated_at` are recommended metadata.
+
 ## Fact fields
 
 | field | required | values / notes |

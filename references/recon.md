@@ -15,6 +15,11 @@ model list, page list, domain partition.
 | Go | `go.mod` | `gin`/`echo` → `router.`, `*.HandleFunc` |
 | Ruby | `Gemfile` | Rails → `config/routes.rb`, `app/models`, `db/migrate` |
 
+**Monorepo / mixed stack:** multiple marker files in subdirectories (e.g.
+`frontend/package.json` + `api/pyproject.toml`) mean multiple stacks — detect
+each subtree independently, build one combined route table (prefixed by
+subtree), and treat the repo as one project for domain partitioning.
+
 ## Where to find the three inventories
 
 **Data models (Phase 1 input):**
