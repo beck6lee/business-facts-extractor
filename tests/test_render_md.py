@@ -1,11 +1,9 @@
-import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import render_md
@@ -25,6 +23,13 @@ FACTS = [
         "sources": [{"file": "models.py", "lines": "31-35", "kind": "backend"}],
         "enforcement": "database", "confidence": "high",
         "relation": {"from": "Department", "to": "Employee", "cardinality": "1-N", "label": "employs"},
+    },
+    {
+        "id": "F-0006", "type": "rule", "domain": "billing",
+        "statement": "退款金额不得超过原订单金额",
+        "entities": ["Order"], "actors": [],
+        "sources": [{"file": "billing.py", "lines": "12-18", "kind": "backend"}],
+        "enforcement": "backend", "confidence": "high",
     },
     {
         "id": "F-0003", "type": "rule", "domain": "onboarding",
@@ -71,6 +76,9 @@ class RenderRulesTest(unittest.TestCase):
         out = render_md.render_rules(FACTS)
         self.assertIn("### onboarding", out)
         self.assertNotIn("### org", out)  # org has no rule-type facts
+        # billing fact appears before onboarding facts in the fixture,
+        # but domains must render alphabetically
+        self.assertLess(out.index("### billing"), out.index("### onboarding"))
 
     def test_rule_line_contains_source_and_enforcement(self):
         out = render_md.render_rules(FACTS)
@@ -89,6 +97,28 @@ class RenderRulesTest(unittest.TestCase):
         self.assertIn("[DISCREPANCY]", line)
 
 
+class MalformedInputsTest(unittest.TestCase):
+    MALFORMED = [
+        {
+            "id": "F-1001", "type": "relationship", "domain": "org",
+            "statement": "relation 缺少 from/to",
+            "relation": {"cardinality": "1-N", "label": "owns"},
+        },
+        {
+            "type": "rule", "domain": "org",
+            "sources": [{"file": "api.py"}],
+        },
+    ]
+
+    def test_malformed_facts_do_not_crash(self):
+        er = render_md.render_er(self.MALFORMED)  # must not raise
+        self.assertIn("erDiagram", er)
+        rules = render_md.render_rules(self.MALFORMED)  # must not raise
+        self.assertIn("[?]", rules)  # missing id
+        self.assertIn("`api.py:?`", rules)  # missing lines
+        self.assertEqual(render_md.render_rules([]), "")
+
+
 class CliTest(unittest.TestCase):
     def test_cli_er_section(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -99,6 +129,12 @@ class CliTest(unittest.TestCase):
                                capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertIn("erDiagram", r.stdout)
+
+    def test_cli_bad_json_returns_friendly_error(self):
+        r = subprocess.run([sys.executable, render_md.__file__, "/nonexistent/facts.json",
+                            "--section", "er"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("ERROR: cannot load /nonexistent/facts.json", r.stdout)
 
 
 if __name__ == "__main__":
