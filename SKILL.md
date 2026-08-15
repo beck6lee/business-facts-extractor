@@ -45,15 +45,21 @@ Every subagent prompt must embed the full fact schema from
   at the moment you read the code — never backfill line numbers from memory.
 - **Fan-out path:** dispatch one subagent per domain. The subagent prompt must
   include the domain's route/page/model file list (plus the embedded schema,
-  per above) and the instruction to return ONLY a JSON array of facts.
-  Also have the subagent write the array to a scratch file (e.g.
-  `/tmp/domain-<name>.json`) — more robust than parsing chat output.
+  per above). Have the subagent write the facts array to a scratch file
+  scoped per project and domain (e.g. `/tmp/bfe-<project>-<domain>.json`,
+  avoiding collisions) and return ONLY the scratch file path — more robust
+  than parsing chat output; fall back to returning the JSON array itself
+  if the write fails.
   Run `scripts/validate_facts.py` on each returned array (wrapped in
   the envelope). On failure:
   - If the errors are only source line ranges that overrun the file's actual
-    length by a few lines (subagents often guess tail lines), the orchestrator
-    may re-read the implicated files itself and fix the ranges in place —
-    this still satisfies "recorded while reading".
+    length by a few lines (≤ 5 lines; subagents often guess tail lines), the
+    orchestrator may re-read the implicated files itself and fix the ranges
+    in place, confirming each fact's statement is still supported by the
+    corrected range — clamping a range to EOF without re-checking the
+    statement is not a fix. This still satisfies "recorded while reading".
+    Then re-run the validator. Larger overruns or structural errors →
+    redispatch (max 2 retries, then blind spot) as before.
   - Otherwise redispatch with the error output — max 2 retries,
     then record the domain as a blind spot in the appendix.
 
@@ -69,7 +75,12 @@ sides' sources. Never reconcile silently.
    subagent-scoped ids collide.
 2. Coverage check: every route-table entry and page from Phase 0 must appear in
    at least one fact's sources. Unreferenced ones go to the appendix 盲区清单.
-3. Run:
+3. Citation spot-check: the validator proves a line range exists, not that it
+   supports the statement. Re-read a random sample of ≥ 5% of facts (minimum
+   5), one source each, and confirm the cited lines actually back the
+   statement. Fix the range or delete the fact on failure; if more than one
+   sampled fact from the same domain fails, re-check that entire domain.
+4. Run:
    ```bash
    python3 <skill_dir>/scripts/validate_facts.py <project>/facts.json --root <project>
    ```
